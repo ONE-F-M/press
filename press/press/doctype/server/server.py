@@ -3490,6 +3490,18 @@ class Server(BaseServer):
 		except Exception:
 			log_error("Archived folder setup error", server=self.as_dict())
 
+	def is_colocated_with_database_server(self) -> bool:
+		"""True if this App Server's Database Server is the same physical machine.
+
+		Used to skip re-running the nginx/agent roles a second time — the
+		Database Server's own self_hosted_db.yml run already installs and
+		owns both on a shared machine.
+		"""
+		if not (getattr(self, "is_self_hosted", False) and self.database_server):
+			return False
+		db_private_ip = frappe.db.get_value("Database Server", self.database_server, "private_ip")
+		return bool(db_private_ip) and db_private_ip == self.private_ip
+
 	def _setup_server(self):
 		agent_password = self.get_password("agent_password")
 		agent_repository_url = self.get_agent_repository_url()
@@ -3507,9 +3519,16 @@ class Server(BaseServer):
 
 		cluster: Cluster = frappe.get_doc("Cluster", self.cluster)
 
+		if getattr(self, "is_self_hosted", False) and self.is_colocated_with_database_server():
+			playbook = "self_hosted_app_colocated.yml"
+		elif getattr(self, "is_self_hosted", False):
+			playbook = "self_hosted.yml"
+		else:
+			playbook = "server.yml"
+
 		try:
 			ansible = Ansible(
-				playbook=("self_hosted.yml" if getattr(self, "is_self_hosted", False) else "server.yml"),
+				playbook=playbook,
 				server=self,
 				user=self._ssh_user(),
 				port=self._ssh_port(),
@@ -3564,6 +3583,15 @@ class Server(BaseServer):
 		if self.is_standalone:
 			return self.ip
 		private_ip = frappe.db.get_value("Proxy Server", self.proxy_server, "private_ip")
+		# Single-box self-hosted setup: the Proxy Server is the same physical
+		# machine as this App Server. The Proxy Server's own nginx role already
+		# sets its own real_ip_header (e.g. trusting Cloudflare); rendering this
+		# server's real_ip_header block too would set the directive twice on
+		# the shared nginx install and fail `nginx -t` with "directive is
+		# duplicate". Skip it here since the Proxy Server's config already
+		# covers this machine.
+		if private_ip == self.private_ip:
+			return None
 		with_mask = private_ip + "/24"
 		return str(ipaddress.ip_network(with_mask, strict=False))
 

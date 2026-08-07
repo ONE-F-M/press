@@ -1,0 +1,28 @@
+---
+# Variant of self_hosted.yml for an App Server that shares its physical
+# machine with its Database Server (self.private_ip == database_server.private_ip).
+#
+# Skips `nginx` and `agent` — the colocated Database Server's own
+# self_hosted_db.yml run already installs and owns both on this machine.
+# Running them again here would silently overwrite the Database Server's
+# agent nginx vhost (both roles write to the same fixed
+# /home/frappe/agent/nginx.conf -> /etc/nginx/conf.d/agent.conf path).
+#
+# Every other role here is independent of nginx/agent and safe to run
+# regardless of which server's playbook installs them first.
+- name: Setup Self Hosted Server (App, colocated with Database Server)
+  hosts: all
+  become: yes
+  become_user: root
+  gather_facts: yes
+  roles:
+    - role: essentials
+    - role: user
+    - role: bench
+    - role: docker
+    - role: node_exporter
+    - role: cadvisor
+    - role: statsd_exporter
+    - role: filebeat
+    - role: gpg_config
+    - role: user_ssh_certificate

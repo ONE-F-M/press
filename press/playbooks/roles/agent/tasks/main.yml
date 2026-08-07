@@ -9,6 +9,15 @@
     version: '{% if agent_branch is defined and agent_branch is truthy %} {{ agent_branch }} {% else %} master {% endif %}'
     update: yes
 
+- name: Ensure setuptools (pkg_resources) is present in the Agent virtualenv
+  become: yes
+  become_user: frappe
+  pip:
+    name: setuptools<81
+    virtualenv: /home/frappe/agent/env
+    virtualenv_python: python3
+    state: forcereinstall
+
 - name: Install Agent
   become: yes
   become_user: frappe

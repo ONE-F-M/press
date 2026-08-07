@@ -761,7 +761,10 @@ class SelfHostedServer(Document):
 				self.swap_total = result["ansible_facts"]["swaptotal_mb"]
 				self.architecture = result["ansible_facts"]["architecture"]
 				self.instance_type = result["ansible_facts"]["product_name"]
-				self.processor = result["ansible_facts"]["processor"][2]
+				processor_facts = result["ansible_facts"]["processor"]
+				self.processor = processor_facts[2] if len(processor_facts) > 2 else (
+					processor_facts[-1] if processor_facts else ""
+				)
 				self.distribution = result["ansible_facts"]["lsb"]["description"]
 				self.total_storage = self._get_total_storage(result)
 
