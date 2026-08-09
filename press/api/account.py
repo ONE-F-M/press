@@ -1056,7 +1056,11 @@ def get_frappe_io_auth_url() -> str | None:
 		provider = frappe.get_last_doc(
 			"Social Login Key", filters={"enable_social_login": 1, "provider_name": "Frappe"}
 		)
-	except DoesNotExistError:
+	except (DoesNotExistError, RuntimeError):
+		# RuntimeError: no site/db context bound yet. This function is called
+		# at hooks.py import time (building website_redirects), which happens
+		# in contexts with no site selected, e.g. `bench build` while running
+		# `bench get-app` before any site exists.
 		return None
 
 	if (
