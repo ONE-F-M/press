@@ -9,37 +9,22 @@
     version: '{% if agent_branch is defined and agent_branch is truthy %} {{ agent_branch }} {% else %} master {% endif %}'
     update: yes
 
+# Deliberately using the stdlib `venv` module, not the third-party
+# `virtualenv` package. Ubuntu/Debian's patched `virtualenv` creates a
+# local/ compatibility layer where real executables land in env/local/bin/
+# (expecting an env/bin -> env/local/bin symlink that isn't reliably
+# created), AND its resulting venv doesn't properly isolate from the
+# invoking user's own ~/.local site-packages -- editable installs
+# (`pip install -e .`) that fall back to legacy `setup.py develop` end up
+# importing setuptools from ~/.local instead of the venv, then try to
+# write to the system-wide /usr/local/lib/.../dist-packages and fail with
+# Permission denied. `python3 -m venv` doesn't have either problem.
 - name: Ensure Agent virtualenv directory exists
   become: yes
   become_user: frappe
-  command: virtualenv --python python3 /home/frappe/agent/env
+  command: python3 -m venv /home/frappe/agent/env
   args:
     creates: /home/frappe/agent/env/pyvenv.cfg
-
-# Debian/Ubuntu's patched Python virtualenv/venv creates a local/ compatibility
-# layer where the real executables land in env/local/bin/, expecting a
-# env/bin -> env/local/bin symlink to exist for standard tooling (including
-# ansible's own pip module, which only ever checks env/bin/pip) to find them.
-# That symlink isn't reliably created by virtualenv on Ubuntu 22.04, silently
-# leaving env/bin missing entirely even though virtualenv reports success.
-- name: Check if Agent virtualenv uses Debian/Ubuntu's patched local/bin layout
-  stat:
-    path: /home/frappe/agent/env/local/bin/pip
-  register: agent_venv_debian_local_bin
-
-- name: Check if Agent virtualenv already has a bin path
-  stat:
-    path: /home/frappe/agent/env/bin
-  register: agent_venv_bin_dir
-
-- name: Fix missing env/bin symlink for Debian/Ubuntu's patched Python venv layout
-  become: yes
-  become_user: frappe
-  file:
-    src: local/bin
-    dest: /home/frappe/agent/env/bin
-    state: link
-  when: agent_venv_debian_local_bin.stat.exists and not agent_venv_bin_dir.stat.exists
 
 - name: Ensure setuptools (pkg_resources) is present in the Agent virtualenv
   become: yes
