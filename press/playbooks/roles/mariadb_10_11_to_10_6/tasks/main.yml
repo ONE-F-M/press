@@ -38,11 +38,21 @@
     repo: deb https://mirror.rackspace.com/mariadb/repo/10.6/ubuntu {{ ansible_distribution_release }} main
     state: present
     update_cache: true
+    register: apt_update_result
+    retries: 3
+    delay: 15
+    until: apt_update_result is succeeded
+    ignore_errors: yes
   when: mariadb_10_11_to_10_6_requires_change | bool
 
 - name: Update APT cache
   ansible.builtin.apt:
     update_cache: true
+    register: apt_update_result
+    retries: 3
+    delay: 15
+    until: apt_update_result is succeeded
+    ignore_errors: yes
   environment:
     DEBIAN_FRONTEND: noninteractive
   when: mariadb_10_11_to_10_6_requires_change | bool

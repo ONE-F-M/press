@@ -32,6 +32,11 @@
     repo: deb https://artifacts.elastic.co/packages/8.x/apt stable main
     state: absent
     update_cache: true
+    register: apt_update_result
+    retries: 3
+    delay: 15
+    until: apt_update_result is succeeded
+    ignore_errors: yes
 
 - name: Uninstall newer version of Filebeat
   apt:

@@ -4,6 +4,11 @@
     repo: deb https://packages.frappe.cloud/mariadb/10.6 focal main/debug
     state: present
     update_cache: true
+    register: apt_update_result
+    retries: 3
+    delay: 15
+    until: apt_update_result is succeeded
+    ignore_errors: yes
 
 - name: Use Debian Unattended Package Installation Mode
   shell: export DEBIAN_FRONTEND=noninteractive
