@@ -12,6 +12,11 @@
 - name: Update APT Cache
   apt:
     update_cache: yes
+  register: apt_update_result
+  retries: 3
+  delay: 15
+  until: apt_update_result is succeeded
+  ignore_errors: yes
 
 - name: Use Debian Unattended Package Installation Mode
   shell: export DEBIAN_FRONTEND=noninteractive

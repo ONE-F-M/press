@@ -49,6 +49,11 @@
   environment:
     DEBIAN_FRONTEND: noninteractive
   when: mariadb_10_6_to_11_8_current_version is version('11.8.0', '<')
+  register: apt_update_result
+  retries: 3
+  delay: 15
+  until: apt_update_result is succeeded
+  ignore_errors: yes
 
 - name: Ensure clean InnoDB shutdown mode before major upgrade
   ansible.builtin.command: mariadb -NBe "SET GLOBAL innodb_fast_shutdown=0;"
