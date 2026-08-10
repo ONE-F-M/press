@@ -3,7 +3,11 @@
   apt_repository:
     repo: deb https://packages.frappe.cloud/mariadb/10.6 focal main/debug
     state: present
-    update_cache: true
+    update_cache: false
+
+- name: Update APT Cache (after adding MariaDB Debug Symbols repository)
+  apt:
+    update_cache: yes
   register: apt_update_result
   retries: 3
   delay: 15

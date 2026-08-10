@@ -35,7 +35,21 @@
   apt_repository:
     repo: deb https://download.docker.com/linux/ubuntu focal stable
     state: present
-    update_cache: true
+    update_cache: false
+
+# Deliberately a separate task from adding the repository above.
+# apt_repository's own update_cache: true bundles writing the repo file
+# and refreshing the cache into one atomic-feeling operation -- when the
+# cache refresh failed (e.g. a broken upstream mirror unrelated to this
+# repo), the repo file itself was never written either, leaving "docker-ce"
+# permanently unknown to apt regardless of retries on that same task. A
+# plain `apt-get update` processes every configured source independently
+# and still successfully indexes working repos (this one) even when one
+# other repo (e.g. a stale/inconsistent security.ubuntu.com mirror) fails --
+# it just needs the repo file to actually exist first.
+- name: Update APT Cache (after adding Docker repository)
+  apt:
+    update_cache: yes
   register: apt_update_result
   retries: 3
   delay: 15

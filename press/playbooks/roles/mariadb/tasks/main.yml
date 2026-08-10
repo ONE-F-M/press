@@ -7,12 +7,7 @@
   apt_repository:
     repo: deb https://mirror.rackspace.com/mariadb/repo/11.8/ubuntu {{ ansible_distribution_release }} main
     state: present
-    update_cache: true
-  register: apt_update_result
-  retries: 3
-  delay: 15
-  until: apt_update_result is succeeded
-  ignore_errors: yes
+    update_cache: false
 
 - name: Update APT Cache
   apt:

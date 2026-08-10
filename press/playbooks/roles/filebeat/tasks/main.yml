@@ -31,7 +31,11 @@
   apt_repository:
     repo: deb https://artifacts.elastic.co/packages/8.x/apt stable main
     state: absent
-    update_cache: true
+    update_cache: false
+
+- name: Update APT Cache (after removing new Elasticsearch repository)
+  apt:
+    update_cache: yes
   register: apt_update_result
   retries: 3
   delay: 15
