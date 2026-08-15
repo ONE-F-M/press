@@ -832,14 +832,34 @@ class DatabaseServer(BaseServer):
 			else:
 				self.server_id = 1
 
+	def is_colocated_with_proxy_server(self) -> bool:
+		"""True if a Proxy Server already lives on this same physical machine.
+
+		Used to skip re-running the nginx/agent roles a second time — the
+		Proxy Server's own self_hosted_proxy.yml run already installs and
+		owns both on a shared machine. Unlike Server.database_server, there
+		is no direct link field from Database Server to "its" Proxy Server,
+		so this matches by private_ip instead.
+		"""
+		if not getattr(self, "is_self_hosted", False):
+			return False
+		return bool(frappe.db.exists("Proxy Server", {"private_ip": self.private_ip}))
+
 	def _setup_server(self):
 		config = self._get_config()
 
 		cluster: Cluster = frappe.get_doc("Cluster", self.cluster)
 
+		if getattr(self, "is_self_hosted", False) and self.is_colocated_with_proxy_server():
+			playbook = "self_hosted_db_colocated_with_proxy.yml"
+		elif getattr(self, "is_self_hosted", False):
+			playbook = "self_hosted_db.yml"
+		else:
+			playbook = "database.yml"
+
 		try:
 			ansible = Ansible(
-				playbook="self_hosted_db.yml" if getattr(self, "is_self_hosted", False) else "database.yml",
+				playbook=playbook,
 				server=self,
 				user=self.ssh_user or "root",
 				port=self.ssh_port or 22,

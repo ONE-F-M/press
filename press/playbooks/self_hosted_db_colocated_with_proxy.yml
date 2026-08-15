@@ -1,0 +1,26 @@
+---
+# Variant of self_hosted_db.yml for a Database Server that shares its
+# physical machine with a Proxy Server (self.private_ip == an existing
+# Proxy Server's private_ip).
+#
+# Skips `nginx` and `agent` — the colocated Proxy Server's own
+# self_hosted_proxy.yml run already installs and owns both on this
+# machine. Running them again here would silently overwrite the Proxy
+# Server's agent nginx vhost (both roles write to the same fixed
+# /home/frappe/agent/nginx.conf -> /etc/nginx/conf.d/agent.conf path).
+#
+# Every other role here is independent of nginx/agent and safe to run
+# regardless of which server's playbook installs them first.
+- name: Setup Self Hosted Database Server (colocated with Proxy Server)
+  hosts: all
+  become: yes
+  become_user: root
+  gather_facts: yes
+  roles:
+    - role: essentials
+    - role: user
+    - role: mariadb
+    - role: node_exporter
+    - role: mysqld_exporter
+    - role: deadlock_logger
+    - role: filebeat
