@@ -2829,7 +2829,7 @@ node_filesystem_avail_bytes{{instance="{self.name}", mountpoint="{mountpoint}"}}
 			return frappe.db.get_value(
 				"Proxy Server",
 				{"status": "Active", "cluster": self.cluster},
-				["ssh_user", "ssh_port", "name as ip"],
+				["ssh_user", "ssh_port", "ip"],
 				as_dict=True,
 			)
 
