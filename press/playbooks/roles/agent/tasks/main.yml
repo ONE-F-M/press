@@ -47,10 +47,23 @@
   become_user: frappe
   command: /home/frappe/agent/env/bin/pip install -e /home/frappe/agent/repo
 
+# Deliberately using argv (a real list) instead of a plain command string.
+# ansible's `command` module splits a plain string on whitespace itself --
+# it never goes through an actual shell -- so a value containing a space
+# (e.g. `server` derived from a Cluster title like "GCP London") gets cut
+# into two separate arguments, and `agent setup config` rejects the second
+# fragment as an unexpected extra argument. A literal list passes each
+# value through untouched regardless of what characters it contains.
 - name: Generate Agent Configuration File
   become: yes
   become_user: frappe
-  command: '/home/frappe/agent/env/bin/agent setup config --name {{ server }} --workers {{ workers }} {% if proxy_ip is defined and proxy_ip is truthy %}--proxy-ip {{ proxy_ip }}{% endif %} {% if agent_sentry_dsn is defined and agent_sentry_dsn is truthy %}--sentry-dsn {{ agent_sentry_dsn }}{% endif %}'
+  command:
+    argv: >-
+      {{
+        ['/home/frappe/agent/env/bin/agent', 'setup', 'config', '--name', server, '--workers', workers | string]
+        + (['--proxy-ip', proxy_ip] if (proxy_ip is defined and proxy_ip) else [])
+        + (['--sentry-dsn', agent_sentry_dsn] if (agent_sentry_dsn is defined and agent_sentry_dsn) else [])
+      }}
   args:
     chdir: /home/frappe/agent
 
