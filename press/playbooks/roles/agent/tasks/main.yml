@@ -26,23 +26,26 @@
   args:
     creates: /home/frappe/agent/env/pyvenv.cfg
 
+# Deliberately using the venv's own pip binary directly via `command`,
+# not ansible's `pip` module with a `virtualenv:` argument. That module
+# invokes the system `virtualenv` command (/usr/bin/virtualenv) to
+# validate/manage the target venv even when it already exists -- and that
+# system package is the same broken, patched virtualenv the task above
+# was written to avoid. It crashes with
+# `TypeError: canonicalize_version() got an unexpected keyword argument
+# 'strip_trailing_zero'` whenever a newer setuptools (installed system-wide
+# for something unrelated) shadows the older packaging library the system
+# virtualenv package expects. Calling the venv's own pip directly never
+# touches the system virtualenv command at all.
 - name: Ensure setuptools (pkg_resources) is present in the Agent virtualenv
   become: yes
   become_user: frappe
-  pip:
-    name: setuptools<81
-    virtualenv: /home/frappe/agent/env
-    virtualenv_python: python3
-    state: forcereinstall
+  command: /home/frappe/agent/env/bin/pip install --force-reinstall "setuptools<81"
 
 - name: Install Agent
   become: yes
   become_user: frappe
-  pip:
-    name: file:///home/frappe/agent/repo
-    virtualenv: /home/frappe/agent/env
-    virtualenv_python: python3
-    editable: yes
+  command: /home/frappe/agent/env/bin/pip install -e /home/frappe/agent/repo
 
 - name: Generate Agent Configuration File
   become: yes
