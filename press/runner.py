@@ -142,6 +142,15 @@ class AnsibleCallback(CallbackBase):
 	def update_task(self, status, result=None, task=None):
 		if result:
 			if not result._task._role:
+				# Tasks outside any role (e.g. the implicit "Gathering Facts" step)
+				# are never tracked as Ansible Task docs, so a Failure/Unreachable
+				# here used to be discarded silently. Surface it in the Error Log
+				# instead of losing it.
+				if status in ("Failure", "Unreachable"):
+					frappe.log_error(
+						title=f"Ansible {status}: {result._task.name} ({self.play})",
+						message=frappe.as_json(result._result, indent=4),
+					)
 				return
 			task_name, result = self.parse_result(result)
 		else:
