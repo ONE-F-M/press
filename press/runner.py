@@ -107,6 +107,13 @@ class AnsibleCallback(CallbackBase):
 		self.update_task("Skipped", result)
 
 	def v2_runner_on_unreachable(self, result):
+		try:
+			frappe.log_error(
+				title=f"Ansible Unreachable: {getattr(result._task, 'name', '?')} ({getattr(self, 'play', '?')})",
+				message=frappe.as_json(result._result, indent=4, default=str),
+			)
+		except Exception:
+			pass
 		self.update_task("Unreachable", result)
 
 	def v2_playbook_on_task_start(self, task, is_conditional):
