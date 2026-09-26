@@ -232,6 +232,10 @@ RUN --mount=type=cache,target=/home/frappe/.cache,uid=1000,gid=1000 python${PYTH
 RUN --mount=type=cache,target=/home/frappe/.cache,uid=1000,gid=1000 python${PYTHON_VERSION} -m pip install --upgrade setuptools
 
 RUN git config --global advice.detachedHead false
+# Self-hosted builders whose "frappe" system user isn't UID 1000 (the UID
+# baked into this image) hit git's dubious-ownership check on every
+# app's bind-mounted, host-cloned source directory. Trust all of them.
+RUN git config --global --add safe.directory '*'
 
 ENV PYTHONUNBUFFERED 1
 
